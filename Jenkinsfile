@@ -12,12 +12,10 @@ pipeline {
             steps {
                 script {
                     echo 'incrementing app version ...'
-                    sh '''mvn build-helper:parse-version versions:set \
-                        -DnewVersion=\\${parsedVersion.majorVersion}.\\${parsedVersion.minorVersion}.\\${parsedVersion.nextIncrementalVersion} \
-                        versions:commit'''
-                    def matcher = readFile('pom.xml')  =~ '<version>(.+)</version>'
+                    sh 'mvn build-helper:parse-version versions:set -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.minorVersion}.\\\${parsedVersion.nextIncrementalVersion} versions:commit'
+                    def matcher = readFile('pom.xml') =~ '<version>(.+)</version>'
                     def version = matcher[0][1]
-                    env.IMAGE_NAME = "${version}-${BUILD_NUMBER}"
+                    env.IMAGE_NAME = "$version-$BUILD_NUMBER"
                 }
             }
         }
@@ -35,19 +33,23 @@ pipeline {
                     echo "building the docker image ..."
                     withCredentials([usernamePassword(credentialsId: 'ecr-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
                         sh "docker build -t ${DOCKER_REPO}:${IMAGE_NAME} ."
-                        sh "echo \$PASSWORD | docker login -u \$USERNAME --password-stdin ${DOCKER_REPO_SERVER}"
+                        sh 'aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 471112956940.dkr.ecr.eu-central-1.amazonaws.com'
                         sh "docker push ${DOCKER_REPO}:${IMAGE_NAME}"
                     }
                 }
             }
         }
         stage("deploy") {
+            environment {
+                AWS_ACCESS_KEY_ID = credentials('jenkins_aws_access_key_id')
+                AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws_secret_access_key')
+                APP_NAME = 'java-maven-app'
+            }
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'jenkins_aws_credentials', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
-                        sh 'envsubst < Kubernetes/deployment.yaml | kubectl apply -f -'
-                        sh 'envsubst < Kubernetes/service.yaml | kubectl apply -f -'
-                    }
+                    echo 'Deploying the application ....'
+                    sh 'envsubst < Kubernetes/deployment.yaml | kubectl apply -f -'
+                    sh 'envsubst < Kubernetes/service.yaml | kubectl apply -f -'
                 }
             }
         }
@@ -57,7 +59,6 @@ pipeline {
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                         sh 'git config --global user.email "jenkins@example.com"'
                         sh 'git config --global user.name "jenkins"'
-
                         sh 'git status'
                         sh 'git branch'
                         sh 'git config --list'
