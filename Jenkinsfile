@@ -1,3 +1,4 @@
+#!/usr/bin/env groovy
 pipeline {
     agent any
     tools {
@@ -33,7 +34,7 @@ pipeline {
                     echo "building the docker image ..."
                     withCredentials([usernamePassword(credentialsId: 'ecr-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
                         sh "docker build -t ${DOCKER_REPO}:${IMAGE_NAME} ."
-                        sh 'aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 471112956940.dkr.ecr.eu-central-1.amazonaws.com'
+                        sh "echo $PASS | docker login -u $USER --password-stdin ${DOCKER_REPO_SERVER}"
                         sh "docker push ${DOCKER_REPO}:${IMAGE_NAME}"
                     }
                 }
