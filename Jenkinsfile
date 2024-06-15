@@ -62,7 +62,7 @@ pipeline {
                                 sh 'git status'
                                 sh 'git branch'
                                 sh 'git config --list'
-                                sh "git remote set-url origin https://${TOKEN}@github.com/ILO2003/Modul11.git"
+                                sh "git remote set-url origin https://${TOKEN}@github.com/ILO2003/Module11.git"
                                 sh 'git add .'
                                 sh 'git commit -m "CI: version bump"'
                                 sh 'git push origin HEAD:jenkins-jobs'
