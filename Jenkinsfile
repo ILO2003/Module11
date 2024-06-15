@@ -16,14 +16,12 @@ pipeline {
             }
         }
          stage("deploy") {
-            environment {
-                AWS_ACCESS_KEY_ID = credentials ('jenkins_aws_access_key_id')
-                AWS_ACCESS_ACCESS_KEY = credentials ('jenkins-aws_secret_access_key')
-            }
             steps {
                 script{
                     echo 'Deploying the application ....'
-                    sh 'kubectl create deployment nginx-deployment --image=nginx'
+		    withKubeConfig([credentialsId: 'lke-credentials', serverUtl: 'https://347c8331-a359-4529-8997-d51eda9f8ad2.se-sto-1.linodelke.net']){
+		    sh 'kubectl create deployment nginx-deployment --image=nginx'
+		    }
                 }
             }
         }
